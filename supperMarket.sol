@@ -34,7 +34,7 @@ contract SupperMarketplace is Supplier, Judge, Product {
         uint256 shippingTimeOut;
         uint256 insurance;
         uint256 state;
-        uint256 guaranteeType;
+        address guardian;
         /* state
          *0: Buyer create a cart
          *1: Buyer cancel
@@ -71,7 +71,7 @@ contract SupperMarketplace is Supplier, Judge, Product {
         PurchaseItem[] memory items,
         uint256 shippingTime,
         uint256 shippingFee,
-        uint256 guaranteeType //0: not use, 1: market, 2: community
+        address guardian //0: not use, 1: market, 2: community
     ) external payable nonReentrant {
         uint256 totalPrice;
         uint256 sellerId = getSellerId(seller);
@@ -107,7 +107,7 @@ contract SupperMarketplace is Supplier, Judge, Product {
         purchaseItems[_purchaseId].totalPrice = totalPrice;
         purchaseItems[_purchaseId].insurance = insurance;
         purchaseItems[_purchaseId].state = 0;
-        purchaseItems[_purchaseId].guaranteeType = guaranteeType;
+        purchaseItems[_purchaseId].guardian = guardian;
 
         purchaseItems[_purchaseId].shippingTimeOut =
             shippingTime +
@@ -183,8 +183,11 @@ contract SupperMarketplace is Supplier, Judge, Product {
         emit eventConfirmReceived(purchaseId);
     }
 
-    function confirmDelivery(uint256 purchaseId) public onlyMarketOwner {
-        require(purchaseItems[purchaseId].guaranteeType == 1, "Not allow");
+    function confirmDelivery(uint256 purchaseId) public {
+        require(
+            msg.sender == purchaseItems[purchaseId].guardian,
+            "Only guardian"
+        );
         require(purchaseItems[purchaseId].state == 2, "Invalid");
         purchaseItems[purchaseId].state = 9;
 
@@ -264,7 +267,7 @@ contract SupperMarketplace is Supplier, Judge, Product {
             "Not available"
         );
 
-        require(purchaseItems[purchaseId].guaranteeType == 2, "Not valid");
+        require(purchaseItems[purchaseId].guardian == address(0), "Not valid");
 
         uint256 judgeFee = purchaseItems[purchaseId].insurance;
 
